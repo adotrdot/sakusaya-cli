@@ -1,0 +1,4 @@
+{
+    "income": ["Job", "Projects", "Others"],
+    "expense": ["Food & Drink", "Transportation", "Rent", "Entertainment", "Others"]
+}
