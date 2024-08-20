@@ -321,15 +321,24 @@ def input_money():
     Ask user to input an amount of money, validate whether it's numeric, and return it
     """
     while True:
-        money, valid = prompt.input(
-            prompt="Amount: ", validators=RegexValidator(pattern=r"^[0-9]+$")
-        )
-        if valid:
+        money = input("Amount: ")
+        if validate_money(money):
             break
         else:
             prompt.println("You have to input a whole number!")
 
     return money
+
+
+def validate_money(money):
+    """
+    Validate if the given is actually valid.
+
+    Arguments:
+    money -- the amount of money that will be validated
+    """
+
+    return prompt.validate_input(input_string=money, validators=RegexValidator(pattern=r"^[0-9]+$"))
 
 
 def new_account():
