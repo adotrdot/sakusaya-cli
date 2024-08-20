@@ -1,8 +1,10 @@
-from consolemenu import ConsoleMenu, SelectionMenu
-from consolemenu.items import FunctionItem
+from consolemenu import ConsoleMenu, SelectionMenu, MultiSelectMenu
+from consolemenu.items import FunctionItem, SubmenuItem
 from consolemenu.prompt_utils import PromptUtils
 from consolemenu.screen import Screen
 from consolemenu.validators.regex import RegexValidator
+from datetime import datetime
+from tabulate import tabulate
 import csv
 import json
 import sys
@@ -16,7 +18,7 @@ def main():
             account = json.load(file)
     except FileNotFoundError:
         with open("account.json", "w") as file:
-            account = {"total": 0, "income": 0, "expenses": 0, "saving": 0}
+            account = {"total": 0, "income": 0, "expenses": 0, "savings": 0}
             json.dump(account, file)
 
     # Create and show Main Menu
@@ -43,7 +45,7 @@ def build_menu():
     # Insert New Data Menu
     submenu_insert = FunctionItem(text="Insert new data", function=build_submenu_insert)
 
-    # Deposit to saving
+    # Deposit to savings
     item_deposit = FunctionItem(
         text="Deposit",
         function=input_data,
@@ -100,11 +102,41 @@ def build_submenu_history():
     """
     Build menu for the item 'View history'
     """
+    filter = set()
+
+    def get_history_with_filter():
+        """Get filtered content of history.csv"""
+        return get_history(filter)
+    
+    def add_filter(f):
+        filter.add(f)
+        menu.draw()
+
+    def reset_filter():
+        filter.clear()
+        menu.draw()
+
     menu = ConsoleMenu(
         title="=== SAKUSAYA ===",
-        subtitle=get_history,
+        subtitle=get_history_with_filter,
         exit_option_text="Back to main menu",
     )
+
+    # Filter
+    menu_filter = MultiSelectMenu(title="=== SAKUSAYA ===", subtitle="Filter history by type\nEx.: 1,2,3 or 1-3 or 1-2,4", exit_option_text="Cancel")
+    filter_income = FunctionItem(text="Income", function=add_filter, args=["Income"], should_exit=True)
+    filter_expenses = FunctionItem(text="Expense", function=add_filter, args=["Expense"], should_exit=True)
+    filter_deposit = FunctionItem(text="Deposit", function=add_filter, args=["Deposit"], should_exit=True)
+    filter_withdraw = FunctionItem(text="Withdraw", function=add_filter, args=["Withdraw"], should_exit=True)
+    menu_filter.append_item(filter_income)
+    menu_filter.append_item(filter_expenses)
+    menu_filter.append_item(filter_deposit)
+    menu_filter.append_item(filter_withdraw)
+    menu_filter_item = SubmenuItem(text="Filter history by type", submenu=menu_filter, menu=menu_filter)
+    item_reset_filter = FunctionItem(text="Reset filter", function=reset_filter)
+
+    menu.append_item(menu_filter_item)
+    menu.append_item(item_reset_filter)
     menu.show()
 
 
@@ -131,23 +163,51 @@ def build_submenu_reset():
 
 def get_data():
     """
-    Get the data of income.csv, expense.csv, and saving.csv
+    Get the data of total money, income, expense, and savings from account
     and return it in a pretty table
     """
-    return "Main Menu\n...\nContents of income, expense, saving.csv\n..."
+    header = ["Total", account['total']]
+    data = [
+        ["Savings", account['savings']],
+        ["Income", account['income']],
+        ["Expenses", account['expenses']]
+    ]
+
+    table = tabulate(tabular_data=data, headers=header, tablefmt="fancy_outline")
+
+    return table
 
 
-def get_history():
+def get_history(filter: set = {}):
     """
-    Get the content of history.csv
-    and return it in a pretty table
+    Get the content of history.csv and return it in a pretty table.
+    Returns 'No records.' if content is empty.
+
+    Arguments:
+    filter -- List of filters to apply. Options are 'Income', 'Expense', 'Deposit', and 'Withdraw'.
     """
-    return "History\n...\nContents of history.csv\n..."
+    try:
+        with open("history.csv", newline="") as file:
+            reader = csv.DictReader(file)
+            if len(filter) > 0:
+                data = [row for row in reader if row["Type"] in filter]
+            else:
+                data = [row for row in reader]
+
+            if len(data) == 0:
+                return "No records"
+            
+            # Reverse data so that the latest timestamp is on top
+            data.reverse()
+
+            return tabulate(tabular_data=data, headers="keys", tablefmt="fancy_outline")
+    except FileNotFoundError:
+        return "No records"
 
 
 def input_data(parent: ConsoleMenu, type: str):
     """
-    Input new data to either income.csv, expense.csv, or saving.csv
+    Input new data to either income.csv, expense.csv, or savings.csv
 
     Arguments:
     type -- type of data, either income, expense, deposit, or withdraw
@@ -189,7 +249,7 @@ def input_data(parent: ConsoleMenu, type: str):
 
 def save_data(money: int, type: str, category=None):
     """
-    Save new data to the corresponding csv file and make changes to account.json
+    Save new data to the history.csv file and make changes to account.json
 
     Arguments:
     money -- the amount of money
@@ -202,24 +262,23 @@ def save_data(money: int, type: str, category=None):
     if not type in ["income", "expense", "deposit", "withdraw"]:
         raise ValueError
     
-    # Filename will be saving.csv if type is either deposit or withdraw, but if type is income/expense then filename is income/expense.csv
-    filename = "saving.csv" if category is None else f"{type}.csv"
+    # Filename will be savings.csv if type is either deposit or withdraw, but if type is income/expense then filename is income/expense.csv
+    filename = "savings.csv" if category is None else f"{type}.csv"
 
     # Declare new data
-    new_data = {"amount": money}
-    if category is None:
-        new_data["type"] = type.capitalize()
-    else:
-        new_data["category"] = category
+    new_data = {"Amount": money}
+    new_data["Type"] = type.capitalize()
+    new_data["Category"] = "-" if category is None else category
+    new_data["Timestamp"] = datetime.now().strftime("%y-%m-%d %H:%M") # Get and format current time
 
-    # Append new data
-    with open(filename, "a", newline="") as file:
-        fieldnames = ["amount", "type"] if category is None else ["amount", "category"]
+    # Append new data history.csv
+    with open("history.csv", "a", newline="") as file:
+        fieldnames = ["Amount", "Type", "Category", "Timestamp"]
         writer = csv.DictWriter(f=file, fieldnames=fieldnames)
         reader = csv.DictReader(file)
 
         # Add row
-        if reader.line_num == 0:
+        if file.tell() == 0:
             writer.writeheader()
         writer.writerow(new_data)
 
@@ -232,10 +291,10 @@ def save_data(money: int, type: str, category=None):
             account["expenses"] += money
             account["total"] -= money
         case "deposit":
-            account["saving"] += money
+            account["savings"] += money
             account["total"] -= money
         case "withdraw":
-            account["saving"] -= money
+            account["savings"] -= money
             account["total"] += money
 
     with open("account.json", "w") as file:
