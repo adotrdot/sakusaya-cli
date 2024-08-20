@@ -163,6 +163,9 @@ def get_data():
     """
     Get the data of total money, income, expense, and savings from account
     and return it in a pretty table
+
+    Returns:
+        table (str): A table consisting of total money, income, expense, and savings generated using tabulate
     """
     header = ["Total", account['total']]
     data = [
@@ -182,7 +185,10 @@ def get_history(filter: set = {}):
     Returns 'No records.' if content is empty.
 
     Arguments:
-    filter -- List of filters to apply. Options are 'Income', 'Expense', 'Deposit', and 'Withdraw'.
+        filter (set): List of filters to apply. Options are 'Income', 'Expense', 'Deposit', and 'Withdraw'.
+
+    Returns:
+        table (str): A table containing the contents of history.csv generated using tabulate. However, if there are no contents, return 'No records'
     """
     try:
         with open("history.csv", newline="") as file:
@@ -208,10 +214,11 @@ def input_data(parent: ConsoleMenu, type: str):
     Input new data to either income.csv, expense.csv, or savings.csv
 
     Arguments:
-    type -- type of data, either income, expense, deposit, or withdraw
+        parent (ConsoleMenu): this function will make changes to values displayed in parent's menu, hence parent needs to be given to redraw it
+        type (str): type of data, either income, expense, deposit, or withdraw
 
-    Raise:
-    ValueError -- if type argument is not accepted
+    Raises:
+        ValueError: if type argument is not accepted
     """
     if not type in ["income", "expense", "deposit", "withdraw"]:
         raise ValueError
@@ -250,12 +257,12 @@ def save_data(money: int, type: str, category=None):
     Save new data to the history.csv file and make changes to account.json
 
     Arguments:
-    money -- the amount of money
-    type -- type of data, either income, expense, deposit, or withdraw
-    category -- category of income/expense, None if type is either deposit or withdraw
+        money (int): the amount of money
+        type (str): type of data, either income, expense, deposit, or withdraw
+        category (str, optional): category of income/expense, None if type is either deposit or withdraw
 
-    Raise:
-    ValueError -- if type argument is not accepted
+    Raises:
+        ValueError: if type argument is not accepted
     """
     if not type in ["income", "expense", "deposit", "withdraw"]:
         raise ValueError
@@ -319,6 +326,9 @@ def reset_data(parent: ConsoleMenu):
 def input_money():
     """
     Ask user to input an amount of money, validate whether it's numeric, and return it
+
+    Returns:
+        money (str): the amount of money that has been validated
     """
     while True:
         money = input("Amount: ")
@@ -335,7 +345,10 @@ def validate_money(money):
     Validate if the given is actually valid.
 
     Arguments:
-    money -- the amount of money that will be validated
+        money (str): the amount of money that will be validated
+
+    Returns:
+        (bool): whether the money was valid or not
     """
 
     return prompt.validate_input(input_string=money, validators=RegexValidator(pattern=r"^[0-9]+$"))
@@ -345,6 +358,9 @@ def new_account():
     """
     Return a new dictionary of an account that consists of total amount of money,
     income, expenses, and saving with values set to 0.
+
+    Returns:
+        (dict): A dictionary consisting of total money, income, expenses, and savings with the default value of 0
     """
     return {"total": 0, "income": 0, "expenses": 0, "savings": 0}
 
