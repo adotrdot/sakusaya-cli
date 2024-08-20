@@ -16,9 +16,9 @@ def main():
     try:
         with open("account.json") as file:
             account = json.load(file)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         with open("account.json", "w") as file:
-            account = {"total": 0, "income": 0, "expenses": 0, "savings": 0}
+            account = new_account()
             json.dump(account, file)
 
     # Create and show Main Menu
@@ -151,14 +151,12 @@ def build_submenu_reset():
     )
     item_reset = FunctionItem(
         text="Yes",
-        function=prompt.enter_to_continue,
+        function=reset_data,
+        kwargs={"parent": menu.previous_active_menu},
         should_exit=True,
     )
     menu.append_item(item_reset)
     menu.show()
-
-    # Refresh parent
-    menu.previous_active_menu.draw()
 
 
 def get_data():
@@ -261,9 +259,6 @@ def save_data(money: int, type: str, category=None):
     """
     if not type in ["income", "expense", "deposit", "withdraw"]:
         raise ValueError
-    
-    # Filename will be savings.csv if type is either deposit or withdraw, but if type is income/expense then filename is income/expense.csv
-    filename = "savings.csv" if category is None else f"{type}.csv"
 
     # Declare new data
     new_data = {"Amount": money}
@@ -301,6 +296,26 @@ def save_data(money: int, type: str, category=None):
         json.dump(account, file)
 
 
+def reset_data(parent: ConsoleMenu):
+    """
+    Reset data, remove the contents of history.csv and reset account
+    """
+    # Remove contents of history.csv
+    with open("history.csv", "w", newline="") as file:
+        file.write("")
+
+    # Reset account
+    global account
+    account = new_account()
+
+    # Replace account.json with the new reset account
+    with open("account.json", "w", newline="") as file:
+        json.dump(account, file)
+
+    # Refresh parent
+    parent.draw()
+
+
 def input_money():
     """
     Ask user to input an amount of money, validate whether it's numeric, and return it
@@ -312,9 +327,17 @@ def input_money():
         if valid:
             break
         else:
-            prompt.println("You have to input a number!")
+            prompt.println("You have to input a whole number!")
 
     return money
+
+
+def new_account():
+    """
+    Return a new dictionary of an account that consists of total amount of money,
+    income, expenses, and saving with values set to 0.
+    """
+    return {"total": 0, "income": 0, "expenses": 0, "savings": 0}
 
 
 if __name__ == "__main__":
