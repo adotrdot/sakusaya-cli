@@ -47,9 +47,7 @@ def build_menu():
 
     # Deposit to savings
     item_deposit = FunctionItem(
-        text="Deposit",
-        function=input_data,
-        kwargs={"parent": menu, "type": "deposit"}
+        text="Deposit", function=input_data, kwargs={"parent": menu, "type": "deposit"}
     )
     item_withdraw = FunctionItem(
         text="Withdraw",
@@ -107,7 +105,7 @@ def build_submenu_history():
     def get_history_with_filter():
         """Get filtered content of history.csv"""
         return get_history(filter)
-    
+
     def add_filter(f):
         filter.add(f)
         menu.draw()
@@ -123,16 +121,30 @@ def build_submenu_history():
     )
 
     # Filter
-    menu_filter = MultiSelectMenu(title="=== SAKUSAYA ===", subtitle="Filter history by type\nEx.: 1,2,3 or 1-3 or 1-2,4", exit_option_text="Cancel")
-    filter_income = FunctionItem(text="Income", function=add_filter, args=["Income"], should_exit=True)
-    filter_expenses = FunctionItem(text="Expense", function=add_filter, args=["Expense"], should_exit=True)
-    filter_deposit = FunctionItem(text="Deposit", function=add_filter, args=["Deposit"], should_exit=True)
-    filter_withdraw = FunctionItem(text="Withdraw", function=add_filter, args=["Withdraw"], should_exit=True)
+    menu_filter = MultiSelectMenu(
+        title="=== SAKUSAYA ===",
+        subtitle="Filter history by type\nEx.: 1,2,3 or 1-3 or 1-2,4",
+        exit_option_text="Cancel",
+    )
+    filter_income = FunctionItem(
+        text="Income", function=add_filter, args=["Income"], should_exit=True
+    )
+    filter_expenses = FunctionItem(
+        text="Expense", function=add_filter, args=["Expense"], should_exit=True
+    )
+    filter_deposit = FunctionItem(
+        text="Deposit", function=add_filter, args=["Deposit"], should_exit=True
+    )
+    filter_withdraw = FunctionItem(
+        text="Withdraw", function=add_filter, args=["Withdraw"], should_exit=True
+    )
     menu_filter.append_item(filter_income)
     menu_filter.append_item(filter_expenses)
     menu_filter.append_item(filter_deposit)
     menu_filter.append_item(filter_withdraw)
-    menu_filter_item = SubmenuItem(text="Filter history by type", submenu=menu_filter, menu=menu_filter)
+    menu_filter_item = SubmenuItem(
+        text="Filter history by type", submenu=menu_filter, menu=menu_filter
+    )
     item_reset_filter = FunctionItem(text="Reset filter", function=reset_filter)
 
     menu.append_item(menu_filter_item)
@@ -167,11 +179,11 @@ def get_data():
     Returns:
         table (str): A table consisting of total money, income, expense, and savings generated using tabulate
     """
-    header = ["Total", account['total']]
+    header = ["Total", account["total"]]
     data = [
-        ["Savings", account['savings']],
-        ["Income", account['income']],
-        ["Expenses", account['expenses']]
+        ["Savings", account["savings"]],
+        ["Income", account["income"]],
+        ["Expenses", account["expenses"]],
     ]
 
     table = tabulate(tabular_data=data, headers=header, tablefmt="fancy_outline")
@@ -200,7 +212,7 @@ def get_history(filter: set = {}):
 
             if len(data) == 0:
                 return "No records"
-            
+
             # Reverse data so that the latest timestamp is on top
             data.reverse()
 
@@ -271,7 +283,9 @@ def save_data(money: int, type: str, category=None):
     new_data = {"Amount": money}
     new_data["Type"] = type.capitalize()
     new_data["Category"] = "-" if category is None else category
-    new_data["Timestamp"] = datetime.now().strftime("%y-%m-%d %H:%M") # Get and format current time
+    new_data["Timestamp"] = datetime.now().strftime(
+        "%y-%m-%d %H:%M"
+    )  # Get and format current time
 
     # Append new data history.csv
     with open("history.csv", "a", newline="") as file:
@@ -351,7 +365,9 @@ def validate_money(money):
         (bool): whether the money was valid or not
     """
 
-    return prompt.validate_input(input_string=money, validators=RegexValidator(pattern=r"^[0-9]+$"))
+    return prompt.validate_input(
+        input_string=money, validators=RegexValidator(pattern=r"^[0-9]+$")
+    )
 
 
 def new_account():
