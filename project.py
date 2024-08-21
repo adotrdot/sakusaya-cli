@@ -209,7 +209,7 @@ def get_history(filter: set = {}):
             nfilter = len(filter)
             for row in reader:
                 # Skip if filter is not empty and data type is not in filter
-                if nfilter > 0 and row["Type"] in filter:
+                if nfilter > 0 and not row["Type"] in filter:
                     continue
 
                 # Format money in USD currency
