@@ -179,11 +179,11 @@ def get_data():
     Returns:
         table (str): A table consisting of total money, income, expense, and savings generated using tabulate
     """
-    header = ["Total", account["total"]]
+    header = ["Total", format_money(account["total"])]
     data = [
-        ["Savings", account["savings"]],
-        ["Income", account["income"]],
-        ["Expenses", account["expenses"]],
+        ["Savings", format_money(account["savings"])],
+        ["Income", format_money(account["income"])],
+        ["Expenses", format_money(account["expenses"])],
     ]
 
     table = tabulate(tabular_data=data, headers=header, tablefmt="fancy_outline")
@@ -205,10 +205,18 @@ def get_history(filter: set = {}):
     try:
         with open("history.csv", newline="") as file:
             reader = csv.DictReader(file)
-            if len(filter) > 0:
-                data = [row for row in reader if row["Type"] in filter]
-            else:
-                data = [row for row in reader]
+            data = []
+            nfilter = len(filter)
+            for row in reader:
+                # Skip if filter is not empty and data type is not in filter
+                if nfilter > 0 and row["Type"] in filter:
+                    continue
+
+                # Format money in USD currency
+                row["Amount"] = format_money(float(row["Amount"]))
+
+                # Append row to data
+                data.append(row)
 
             if len(data) == 0:
                 return "No records"
@@ -250,26 +258,29 @@ def input_data(parent: ConsoleMenu, type: str):
             strings=data, title="=== SAKUSAYA ===", subtitle="Choose income category:"
         )
         category = data[selected]
-        print(f"You have selected '{category}'")
+        prompt.println(f"You have selected '{category}'")
 
     # Ask user to input the amount of money
-    money = input_money()
-    if not prompt.confirm_answer(money):
+    subtitle = f"You have chosen {type.capitalize()}"
+    if category != None:
+        subtitle += f" with the category {category}"
+    money, money_usd = input_money(subtitle=subtitle)
+    if not prompt.confirm_answer(money_usd):
         return
 
     # Save data
-    save_data(int(money), type, category)
+    save_data(money, type, category)
 
     # Refresh parent
     parent.draw()
 
 
-def save_data(money: int, type: str, category=None):
+def save_data(money: float, type: str, category=None):
     """
     Save new data to the history.csv file and make changes to account.json
 
     Arguments:
-        money (int): the amount of money
+        money (float): the amount of money
         type (str): type of data, either income, expense, deposit, or withdraw
         category (str, optional): category of income/expense, None if type is either deposit or withdraw
 
@@ -337,26 +348,42 @@ def reset_data(parent: ConsoleMenu):
     parent.draw()
 
 
-def input_money():
+def input_money(subtitle: str = "", prompt_text: str = "Amount: $ "):
     """
     Ask user to input an amount of money, validate whether it's numeric, and return it
 
+    Arguments:
+        subtitle (str, optional): a help text to show above the prompt
+        prompt (str): provide custom text for prompt, default is 'Amount: $ '
+
     Returns:
         money (str): the amount of money that has been validated
+        (tuple): a tuple consisting of an float of the amount of money and a string of the money in USD format
     """
     while True:
-        money = input("Amount: ")
+        if subtitle:
+            prompt.println(subtitle)
+        prompt.println(
+            "Example input are:\n- 123456\n- 123,456\n- 123,456.0\n- 123,456.00"
+        )
+        money = input(prompt_text)
         if validate_money(money):
             break
         else:
             prompt.println("You have to input a whole number!")
 
-    return money
+    # Convert money to float, removing all occurences of comma
+    money_f = float(money.replace(",", ""))
+
+    # Format money back to string, formatted in USD currency
+    money_usd = format_money(money_f)
+
+    return (money_f, money_usd)
 
 
 def validate_money(money):
     """
-    Validate if the given is actually valid.
+    Validate if the given money is actually valid.
 
     Arguments:
         money (str): the amount of money that will be validated
@@ -366,8 +393,25 @@ def validate_money(money):
     """
 
     return prompt.validate_input(
-        input_string=money, validators=RegexValidator(pattern=r"^[0-9]+$")
+        input_string=money,
+        validators=RegexValidator(
+            pattern=r"^(0|[1-9][0-9]{0,2})(,*\d{3})*(\.\d{1,2})?$"
+        ),
     )
+
+
+def format_money(money: float):
+    """
+    Format money from float to string in USD currency format
+
+    Arguments:
+        money (float): the amount of money
+
+    Returns:
+        money_usd (str): the amount of money, as a string, in USD currency format
+    """
+
+    return f"$ {money:,.2f}"
 
 
 def new_account():
