@@ -2,11 +2,11 @@ from consolemenu import ConsoleMenu, SelectionMenu, MultiSelectMenu
 from consolemenu.items import FunctionItem, SubmenuItem
 from consolemenu.prompt_utils import PromptUtils
 from consolemenu.screen import Screen
-from consolemenu.validators.regex import RegexValidator
 from datetime import datetime
 from tabulate import tabulate
 import csv
 import json
+import re
 import sys
 
 
@@ -104,7 +104,7 @@ def build_submenu_history():
 
     def get_history_with_filter():
         """Get filtered content of history.csv"""
-        return get_history(filter)
+        return get_history(filter=filter)
 
     def add_filter(f):
         filter.add(f)
@@ -191,19 +191,20 @@ def get_data():
     return table
 
 
-def get_history(filter: set = {}):
+def get_history(history_file: str = "history.csv", filter: set = {}):
     """
     Get the content of history.csv and return it in a pretty table.
     Returns 'No records.' if content is empty.
 
     Arguments:
+        history_file (str): Filename of the history csv file
         filter (set): List of filters to apply. Options are 'Income', 'Expense', 'Deposit', and 'Withdraw'.
 
     Returns:
         table (str): A table containing the contents of history.csv generated using tabulate. However, if there are no contents, return 'No records'
     """
     try:
-        with open("history.csv", newline="") as file:
+        with open(history_file, newline="") as file:
             reader = csv.DictReader(file)
             data = []
             nfilter = len(filter)
@@ -223,7 +224,6 @@ def get_history(filter: set = {}):
 
             # Reverse data so that the latest timestamp is on top
             data.reverse()
-
             return tabulate(tabular_data=data, headers="keys", tablefmt="fancy_outline")
     except FileNotFoundError:
         return "No records"
@@ -381,7 +381,7 @@ def input_money(subtitle: str = "", prompt_text: str = "Amount: $ "):
     return (money_f, money_usd)
 
 
-def validate_money(money):
+def validate_money(money: str):
     """
     Validate if the given money is actually valid.
 
@@ -392,12 +392,7 @@ def validate_money(money):
         (bool): whether the money was valid or not
     """
 
-    return prompt.validate_input(
-        input_string=money,
-        validators=RegexValidator(
-            pattern=r"^(0|[1-9][0-9]{0,2})(,*\d{3})*(\.\d{1,2})?$"
-        ),
-    )
+    return True if re.match(pattern=r"^(0|[1-9][0-9]{0,2})(,*\d{3})*(\.\d{1,2})?$", string=money) else False
 
 
 def format_money(money: float):
