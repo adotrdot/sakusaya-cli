@@ -257,6 +257,11 @@ def input_data(parent: ConsoleMenu, type: str):
         selected = SelectionMenu.get_selection(
             strings=data, title="=== SAKUSAYA ===", subtitle="Choose income category:"
         )
+        
+        # If user selected exit (the last option), return
+        if selected == len(data):
+            return
+        
         category = data[selected]
         prompt.println(f"You have selected '{category}'")
 
